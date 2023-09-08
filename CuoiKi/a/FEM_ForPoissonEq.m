@@ -1,0 +1,226 @@
+% The Finite Element Method (FEM)
+% for Poisson problem in 2 Dimensions
+function [X,Y,U] = FEM_ForPoissonEq(L,D,numx,numy,elemType)
+% *************************************************************************
+% ***                            I N P U T                              ***
+% *************************************************************************
+
+% L:        length of the Omerga domain
+% D:        wide of the Omerga domain
+
+%-------------------------------------------------------------------------%
+% numx:     Number of elements in x-direction.
+% numx = 4; % mesh 16 (quadrange), mesh 32 (triangle)
+% numx = 8 % mesh 64 (quadrange), mesh 128 (triangle)
+% numx = 16% mesh 256 (quadrange), mesh 512 (triangle)
+% numx = 32% mesh 1024 (quadrange), mesh 2048 (triangle)
+
+% numy:     Number of elements in y-direction.
+%-------------------------------------------------------------------------%
+
+%  elemType = 'T3';
+% the element type used in the FEM simulation:
+%'T3' is for a three node constant strain triangular element,
+%'T6' is for a six node constant strain triangular element,
+%'Q4' is for a four node quadrilateral element,
+%'Q9' is for a nine node quadrila  teral element.
+
+
+% *************************************************************************
+% ***                 P R E - P R O C E S S I N G                       ***
+% *************************************************************************
+% GENERATE FINITE ELEMENT MESH
+%
+% These connectivity matricies refer to the node numbers defined in the
+% coordinate matrix node.
+switch elemType
+    case 'Q4'           % here we generate the mesh of Q4 elements
+        air=0.0;
+        node = singularmesh_cavityflow(L,D,numx,numy,air);
+        
+        nnx=numx+1;
+        nny=numy+1;
+        inc_u=1;
+        inc_v=nnx;
+        node_pattern=[ 1 2 nnx+2 nnx+1 ];
+        
+        element=make_elem(node_pattern,numx,numy,inc_u,inc_v,1,elemType);
+    case 'Q9'           % here we generate the mesh of Q9 elements
+        air=0.0;
+        node = singularmesh_cavityflow(L,D,numx,numy,air);
+        
+        nnx=numx+1;
+        nny=numy+1;
+        inc_u=[1 1 1 1 1 2 1 2 2];
+        inc_v=nnx;
+        numnode=size(node,1);           % number of nodes
+        extrax = numnode + nnx;
+        extray = numnode + nnx + 2*numx;
+        node_pattern=[ 1 2 nnx+2 nnx+1 numnode+1 extrax+2 extray+1 extrax extrax+1];
+        
+        element = make_elem(node_pattern,numx,numy,inc_u,inc_v,2,elemType);
+        % Update node
+        node = [node;zeros(numx*(numy+1)+(2*numx+1)*numy,2)];
+        for j=1:size(element,1)
+            temp = element(j,:);
+            node(temp(5),2) = node(temp(1),2);
+            node(temp(5),1) = (node(temp(1),1)+ node(temp(2),1))/2;
+            node(temp(6),1) = node(temp(2),1);
+            node(temp(6),2) = (node(temp(2),2) + node(temp(3),2))/2;
+            node(temp(7),2) = node(temp(3),2);
+            node(temp(7),1) = (node(temp(3),1) + node(temp(4),1))/2;
+            node(temp(8),1) = node(temp(4),1);
+            node(temp(8),2) = (node(temp(4),2) + node(temp(1),2))/2;
+            node(temp(9),:) = (node(temp(5),:) + node(temp(7),:))/2;
+        end
+    case'T3'    % and last but not least T3 elements
+        air=0.45;
+        node = singularmesh_cavityflow(L,D,numx,numy,air);
+        
+        nnx=numx+1;
+        nny=numy+1;
+        inc_u=1;
+        inc_v=nnx;
+
+        node_pattern1=[ 1 2 nnx+1 ];
+        node_pattern2=[ 2 nnx+2 nnx+1 ];
+        
+        element=[make_elem(node_pattern1,numx,numy,inc_u,inc_v,1,elemType);
+            make_elem(node_pattern2,numx,numy,inc_u,inc_v,1,elemType) ];
+    case'T6'
+        air=0.45;
+        node = singularmesh_cavityflow(L,D,numx,numy,air);
+        
+        nnx=numx+1;
+        nny=numy+1;
+        inc_u=[1 1 1 1 2 2];
+        inc_v=nnx;
+        numnode=size(node,1);           % number of nodes
+        extrax = numnode + nnx;
+        extray = numnode + nnx + 2*numx;
+        
+        node_pattern1=[ 1 2 nnx+1 numnode+1 extrax+1 extrax];
+        node_pattern2=[ nnx+2 nnx+1 2 extray+1 extrax+1 extrax+2];
+        
+        element=[make_elem(node_pattern1,numx,numy,inc_u,inc_v,2,elemType);
+            make_elem(node_pattern2,numx,numy,inc_u,inc_v,2,elemType) ];
+        %Update node
+        node = [node;zeros(numx*(numy+1)+(2*numx+1)*numy,2)];
+        for j=1:size(element,1)
+            temp = element(j,:);
+            node(temp(4),2) = node(temp(1),2);
+            node(temp(4),1) = (node(temp(1),1)+ node(temp(2),1))/2;
+            node(temp(5),:) = (node(temp(2),:) + node(temp(3),:))/2;
+            node(temp(6),1) = node(temp(3),1);
+            node(temp(6),2) = (node(temp(3),2) + node(temp(1),2))/2;
+        end
+    otherwise
+        disp('Not supported yet!!!')
+end
+%-------------------------------------------------------------------------%
+% Area of each element of the primal mesh
+% Dien tich cua moi element
+AreaEle = func_area(element,node);
+%-------------------------------------------------------------------------%
+% Plot meshes
+% figure (1)
+% plot_mesh(node,element,elemType,'b-');
+%-------------------------------------------------------------------------%
+numnode=size(node,1);    % number of nodes
+numelement=size(element,1); % number of elements
+%-------------------------------------------------------------------------%
+% figure (2)
+% draw_writedown_numenode(node,element,numelement,elemType)
+%-------------------------------------------------------------------------%
+%-------------------------------------------------------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+nne1U = size(element,2);    % Nummer nodes in 1 element
+sdof = numnode;     % So gia tri Unknow
+F=zeros(sdof,1);    % external load vector
+K=zeros(sdof,sdof); % stiffness matrix
+
+% *************************************************************************
+% ***                       P R O C E S S I N G                         ***
+% *************************************************************************
+%%%%%%%%%%%%%%%%%% COMPUTE STIFFNESS MATRIX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+[W,Q]=quadrature(3, 'GAUSS', 2); % Gauss quadrature order 2 in 2D
+valueF = 0;
+
+for e=1:numelement
+    sctrU = element(e,:);                        % element scatter vector
+    A=zeros(nne1U,nne1U);
+    for q=1:size(W,1)                           % quadrature loop
+        pt=Q(q,:);                              % quadrature point
+        wt=W(q);                                % quadrature weight
+        
+        [Nu,dNdxiu]=lagrange_basis(elemType,pt);
+        %-----------------------------------------------------------------%
+        J0 = node(sctrU,:)'*dNdxiu;             % element Jacobian matrix
+        dNdxu=dNdxiu/J0;
+        %-----------------------------------------------------------------%
+        % COMPUTE B MATRIX
+        B=zeros(2,nne1U);
+        
+        B(1,1:nne1U)   = dNdxu(:,1)';
+        B(2,1:nne1U)   = dNdxu(:,2)';
+        % COMPUTE C MATRIX
+        C=zeros(1,nne1U);
+        
+        C(1,1:nne1U)   = Nu(:,1)';
+        %-----------------------------------------------------------------%
+        % COMPUTE ELEMENT STIFFNESS AT QUADRATURE POINT
+        A=A + (B'*B + C'*C)*W(q)*abs(det(J0));
+    end  % of quadrature loop
+    K(sctrU,sctrU)=K(sctrU,sctrU) + A;
+    %=====================================================================%
+    % Compute for the source term
+    for i = 1 : size(sctrU,2)
+        x = node(sctrU(i),1);
+        y  = node(sctrU(i),2);
+        valueF = functionF(x,y);
+        Func = AreaEle(e)*valueF/size(sctrU,2);
+        F(sctrU(i),1) = F(sctrU(i),1) + Func;
+    end
+    
+end    % of element loop
+
+% spy(K)
+%-------------------------------------------------------------------------%
+% APPLY ESSENTIAL BOUNDARY CONDITIONS
+% ENFORCE BOUNDARY CONDITION
+BoundNode = [];
+count = 0;
+for inode =  1 : size(node,1)
+    if (abs(node(inode,1)) < 1e-12)||(abs(node(inode,2)) < 1e-12)||...
+            (abs(node(inode,1)-L) < 1e-12)||(abs(node(inode,2)-D) < 1e-12)
+        if count == 0
+            count = count + 1;
+            BoundNode(count) = inode;
+        else
+            term = inode*ones(1,size(BoundNode,2))-BoundNode;
+            if size(find(term),2) == size(BoundNode,2)
+                count = count + 1;
+                BoundNode(count) = inode;
+            end
+        end
+    end
+end
+% bcdof - a vector containging constrained d.o.f
+bcdof = BoundNode;
+% bcval - a vector containing contained value
+for i = 1 : size(bcdof,2)
+    x = node(bcdof(i),1);
+    y = node(bcdof(i),2);
+    bcval(i) = exact_solution(x,y);
+end
+K1=K;
+[K,F]=feaplyc2(K,F,bcdof,bcval);
+% SOLVE SYSTEM
+U=K\F;
+
+X=zeros(numx+1,1); Y=zeros(numx+1,1);
+for i=1:numx+1
+    X(i,1)=(i-1)/numx; Y(i,1)=(i-1)/numx;
+end

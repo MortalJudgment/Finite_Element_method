@@ -1,0 +1,455 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{xcolor}
+\usepackage{multicol}
+\usepackage{tikz,tkz-tab}
+\usetikzlibrary{calc, angles, quotes, intersections, positioning, patterns}
+\usepackage{pgfplots}
+\usepackage{titlesec}
+\usepackage{mdframed}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{graphicx}
+\usepackage{enumerate}
+\usepackage[left=1.00cm, right=1.00cm, top=2.00cm, bottom=2.00cm]{geometry}
+\usepackage[utf8]{vietnam}
+\makeatletter\def\iddots{\mathinner{\mkern1mu\raise\p@\hbox{.}\mkern2mu\raise4\p@\hbox{.}\mkern2mu\raise7\p@\vbox{\kern7\p@\hbox{.}}\mkern1mu}}\makeatother
+\newmdenv[linecolor=black,skipabove=\topsep,skipbelow=\topsep,
+leftmargin=-3pt,rightmargin=-3pt,
+innerleftmargin=3pt,innerrightmargin=3pt]{mybox}
+
+\begin{document}
+    \begin{flushleft}
+        Họ và tên : Nguyễn Từ Huy.\\
+        MSSV: 1711127.\\
+        Bài kiểm tra cuối kì môn Phương pháp phần tử hữu hạn (Finite Element Method) cho bài toán phương trình đạo hàm riêng.\\
+    \end{flushleft}
+    
+    \begin{mybox}
+        $\bold{Question 1:}$\\
+        Cho miền $\Omega \subset \mathbb{R}$ và phương trình bên dưới:\\
+        \begin{align*}
+            \begin{cases}
+                -u^{''}(x) + \alpha u(x) &= f(x), \ \ \ \forall x\in\Omega,\\
+                a_1u'(0) + a_2u(0) &= C_1,\\
+                b_1u'(1) + b_2u(1) &= C_2.
+            \end{cases}
+        \end{align*}
+        Trong đó $\alpha, a_1, a_2, b_1, b_2 \in \mathbb{R}$ và $a_1, b_1 \neq 0$, $C_1,C_2 = const$\\[0.2cm]
+        Dựa vào phương trình và các dữ kiện trên, hãy thực hiện các yêu cầu sau đây\\
+        \begin{enumerate}[a.]
+            \item Chứng minh sự tồn tại nghiệm yếu và tính duy nhất của nghiệm phương trình trên.\\
+            \item Dùng phương pháp phần tử hữu hạn để xây dựng một thuật toán tìm nghiệm xấp xỉ cho phương trình trên.\\
+            \item Với miền $\Omega$ = [0,1], ta có phương trình sau đây:
+            \begin{align*}
+                \begin{cases}
+                -u^{''}(x) + u(x) &= x + (1+4\pi^2)sin(2\pi x), \ \ \ \forall x\in\Omega\\
+                u'(0) &= 1+2\pi,\\
+                u'(1) + u(1) &= 2+2\pi.
+                \end{cases}
+            \end{align*}
+            Nghiệm chính xác của phương trình trên là: $u(x) = x + sin(2\pi x).$\\
+            Áp dụng thuật toán đã xây dựng ở câu b để tìm nghiệm xấp xỉ cho phương trình trên.\\
+        \end{enumerate}
+        Lưu ý: dùng đa thức nội suy Lagrange bậc 2 để tính toán chi tiết từng tích phân, ma trận trong thuật toán tìm nghiệm xấp xỉ, thực hành trên phần mềm MATLAB để tìm nghiệm xấp xỉ và so sánh đối chiếu với nghiệm chính xác của phương trình trên.
+    \end{mybox}
+    $\bold{Answer 1:}$\\
+    \begin{enumerate}[a.]
+        \item Chứng minh sự tồn tại nghiệm yếu và tính duy nhất của nghiệm phương trình.\\
+        Ở đây ta giả sử $\Omega = [0,1]$
+        \begin{align}
+            \begin{cases}
+                -u^{''}(x) + \alpha u(x) &= f(x), \ \ \ \forall x\in\Omega,\\
+                a_1u'(0) + a_2u(0) &= C_1,\\
+                b_1u'(1) + b_2u(1) &= C_2.
+            \end{cases}
+        \end{align}
+    \end{enumerate}
+    Sử dụng phép tính biến phân,\\
+    Nhân 2 vế phương trình cho v (với v $\in H^1(\Omega) $) rồi lấy tích phân trên toàn miền $\Omega$ ta được phương trình mới:\\
+    \begin{align*}
+        -\int_\Omega u^{''}.v d\Omega + \int_\Omega u.v d\Omega &= \int_\Omega f.v d\Omega & ,\forall v \in H^1(\Omega)
+    \end{align*}
+    Sử dụng công thức tích phân từng phần cho vế trái ta được:\\
+    \begin{align*}
+        - u'.v\lvert^1_{0} + \int_\Omega (u'.v' + u.v) d\Omega &= \int_\Omega f.v d\Omega & ,\forall v \in H^1(\Omega)\\
+        - u'(1).v(1) + u'(0).v(0) + \int_\Omega (u'.v' + u.v) d\Omega &= \int_\Omega f.v d\Omega & ,\forall v \in H^1(\Omega)
+    \end{align*}
+    Biến đổi điều kiện biên của bài toán. Ta có:\\
+    \begin{align*}
+        \begin{cases}
+            a_1u'(0) + a_2u(0) &= C_1,\\
+            b_1u'(1) + b_2u(1) &= C_2.
+        \end{cases}
+        \Rightarrow \begin{cases}
+            u'(0) &= \dfrac{1}{a_1}(C_1 - a_2u(0)),\\
+            \\
+            u'(1) &= \dfrac{1}{b_1}(C_2 - b_2u(1)).
+        \end{cases}
+    \end{align*}
+    Thay vào phương trình ta được:\\
+    \begin{align*}
+        -\dfrac{1}{b_1}(C_2 - b_2u(1))v(1) + \dfrac{1}{a_1}(C_1 - a_2u(0))v(0) + \int_\Omega (u'.v' + u.v) d\Omega = \int_\Omega f.v d\Omega & ,\forall v \in H^1(\Omega)\\
+        \dfrac{b_2}{b_1}u(1)v(1) - \dfrac{a_2}{a_1}u(0)v(0) + \int_\Omega (u'.v' + u.v) d\Omega = \int_\Omega f.v d\Omega + \dfrac{C_2}{b_1}v(1) - \dfrac{C_1}{a_1}v(0) & ,\forall v \in H^1(\Omega) \tag{2}
+    \end{align*}
+    (*) Chứng minh phương trình (2) tồn tại nghiệm và duy nhất.\\
+    Nhắc lại về định lý Lax-Milgram:\\
+    $\underline{\bold{Lax-Milgram \ theorem:}}$\\
+    Cho V là không gian Banach được trang bị chuẩn $\Vert.\Vert$.\\
+    Cho F : V $\rightarrow \mathbb{R}$  và a(.,.) : V$\times$V $\rightarrow \mathbb{R}$.\\Nếu F tuyến tính, bị chặn; a song tuyến tính, bị chặn và coercive.\\
+    Thì tồn tại duy nhất u $\in V$:
+    \begin{align*}
+        a(u,v) &= F(v) \ \ \ \ \ \ \ \ ,\forall v \in V
+    \end{align*}
+    Đặt\begin{align*}
+        \begin{cases}
+            a(u,v) = \dfrac{b_2}{b_1}u(1)v(1) - \dfrac{a_2}{a_1}u(0)v(0) + \displaystyle\int_\Omega (u'.v' + u.v) d\Omega\\
+            \\
+            F(v) = \dfrac{C_2}{b_1}v(1) - \dfrac{C_1}{a_1}v(0) + \displaystyle\int_\Omega f.v d\Omega
+        \end{cases}
+    \end{align*}
+    Ta lần lượt chứng minh:\\
+    $\blacktriangledown$ a song tuyến tính, bị chặn, coercive:\\
+    $\bullet$ a song tuyến tính:\\
+    Tuyến tính theo biến thứ nhất:\\
+    \begin{align*}
+        a(u+\alpha w,v) &= \dfrac{b_2}{b_1}(u+\alpha w)(1)v(1) - \dfrac{a_2}{a_1}(u+\alpha w)(0)v(0) + \displaystyle\int_\Omega ((u+\alpha w)'.v' + (u+\alpha w).v) d\Omega\\
+        &= \dfrac{b_2}{b_1}u(1)v(1) - \dfrac{a_2}{a_1}u(0)v(0) + \displaystyle\int_\Omega (u'.v' + u.v) d\Omega\\
+        & +\alpha \left(\dfrac{b_2}{b_1}w(1)v(1) - \dfrac{a_2}{a_1}w(0)v(0) + \displaystyle\int_\Omega (w'.v' + w.v) d\Omega\right)\\ 
+        &= a(u,v) + \alpha. a(w,v).
+    \end{align*}
+    Tuyến tính theo biến thứ hai:\\
+    \begin{align*}
+        a(u,v + \beta t) &= \dfrac{b_2}{b_1}u(1)(v + \beta t)(1) - \dfrac{a_2}{a_1}u(0)(v + \beta t)(0) + \displaystyle\int_\Omega (u'.(v + \beta t)' + u.(v + \beta t)) d\Omega\\
+        &= \dfrac{b_2}{b_1}u(1)v(1) - \dfrac{a_2}{a_1}u(0)v(0) + \displaystyle\int_\Omega (u'.v' + u.v) d\Omega\\
+        & +\beta \left(\dfrac{b_2}{b_1}u(1)t(1) - \dfrac{a_2}{a_1}u(0)t(0) + \displaystyle\int_\Omega (u'.t' + u.t) d\Omega\right)\\ 
+        &= a(u,v) + \beta. a(u,t).
+    \end{align*}
+    $\bullet$ a bị chặn:\\
+    \begin{align*}
+        \vert a(u,v)\vert &= \left\lvert\dfrac{b_2}{b_1}u(1)v(1) - \dfrac{a_2}{a_1}u(0)v(0) + \displaystyle\int_\Omega (u'.v' + u.v) d\Omega\right\lvert\\
+        &\leq \left\lvert\dfrac{b_2}{b_1}u(1)v(1)\right\lvert + \left\lvert\dfrac{a_2}{a_1}u(0)v(0)\right\lvert + \left\lvert\displaystyle\int_\Omega (u'.v' + u.v) d\Omega\right\lvert\\
+    \end{align*}
+    Ta có:\\
+    \begin{align*}
+        u(1) = [x.u(x)]\lvert_0^1 = \displaystyle\int\limits_0^1(x.u(x))'dx = \displaystyle\int\limits_0^1(u(x) + xu'(x))dx.
+    \end{align*}
+    Khi đó:\\
+    \begin{align*}
+        \vert u(1)\vert \leq \displaystyle\int\limits_0^1\left\vert u(x) + xu'(x)\right\vert dx \leq \sqrt{\displaystyle\int\limits_0^1\left( 1 + x^2\right)dx}\sqrt{\displaystyle\int\limits_0^1\left( u^2 + u'^2\right)dx} \leq \sqrt{2}\Vert u\Vert_{H^1}.
+    \end{align*}
+    Hoàn toàn tương tự ta có $\vert v(1)\vert \leq \sqrt{2}\Vert v\Vert_{H^1}$.\\
+    \begin{align*}
+        \vert u(0)\vert &= \left\lvert \displaystyle\int\limits_0^1((x-1).u(x))'dx\right\lvert \leq \displaystyle\int\limits_0^1\left\vert u(x) + (x-1)u'(x)\right\vert dx \leq \sqrt{\displaystyle\int\limits_0^1\left( 1 + (1-x)^2\right)dx}\sqrt{\displaystyle\int\limits_0^1\left( u^2 + u'^2\right)dx}\\
+        &\leq \sqrt{2}\Vert u\Vert_{H^1}.
+    \end{align*}
+    Và tương tự: $\vert v(0)\vert \leq \sqrt{2}\Vert v\Vert_{H^1}$.\\
+    Suy ra:\\
+    \begin{align*}
+        \vert a(u,v)\vert &\leq \left\lvert\dfrac{b_2}{b_1}u(1)v(1)\right\lvert + \left\lvert\dfrac{a_2}{a_1}u(0)v(0)\right\lvert + \left\lvert\displaystyle\int_\Omega (u'.v' + u.v) d\Omega\right\lvert\\
+        &\leq 2\left\vert\dfrac{b_2}{b_1}\right\vert\Vert u\Vert_{H^1}.\Vert v\Vert_{H^1} + 2\left\vert\dfrac{a_2}{a_1}\right\vert\Vert u\Vert_{H^1}.\Vert v\Vert_{H^1} + \sqrt{\displaystyle\int\limits_0^1\left( u'^2 + u^2\right)dx}\sqrt{\displaystyle\int\limits_0^1\left( v'^2 + v^2\right)dx}\\
+        &\leq \left(2\left\vert\dfrac{b_2}{b_1}\right\vert + 2\left\vert\dfrac{a_2}{a_1}\right\vert + 1\right)\Vert u\Vert_{H^1}.\Vert v\Vert_{H^1}
+    \end{align*}\\
+    $\bullet$ a coercive:\\
+    \begin{align*}
+        a(u,u) = \dfrac{b_2}{b_1}(u(1))^2 - \dfrac{a_2}{a_1}(u(0))^2 + \displaystyle\int_\Omega (u'^2 + u^2) d\Omega \geq min\left(\dfrac{b_2}{b_1}, \dfrac{a_2}{a_1}\right) \\
+    \end{align*}
+    $\blacktriangledown$ F tuyến tính, bị chặn:\\
+    $\bullet$ F tuyến tính:\\
+    \begin{align*}
+        F(v + \alpha w) &= \dfrac{C_2}{b_1}(v + \alpha w)(1) - \dfrac{C_1}{a_1}(v + \alpha w)(0) + \displaystyle\int_\Omega f.(v + \alpha w) d\Omega\\
+        &= \left(\dfrac{C_2}{b_1}v(1) - \dfrac{C_1}{a_1}v(0) + \displaystyle\int_\Omega f.v d\Omega\right) + \alpha\left(\dfrac{C_2}{b_1}w(1) - \dfrac{C_1}{a_1}w0) + \displaystyle\int_\Omega f.w d\Omega\right)\\
+        &= F(v) + \alpha F(w).
+    \end{align*}
+    $\bullet$ F bị chặn:\\
+    \begin{align*}
+        \vert F(v)\vert &\leq \left\vert\dfrac{C_2}{b_1}v(1)\right\vert + \left\vert\dfrac{C_1}{a_1}v(0)\right\vert + \left\vert\displaystyle\int_\Omega f.v d\Omega\right\vert\\
+        &\leq \left\vert\dfrac{C_2}{b_1}\right\vert\sqrt{2}\Vert v\Vert_{H^1} + \left\vert\dfrac{C_1}{a_1}\right\vert\sqrt{2}\Vert v\Vert_{H^1} + \Vert f\Vert_{L^2}\Vert v\Vert_{L^2}\\
+        &\leq \left(\sqrt{2}\left\vert\dfrac{C_2}{b_1}\right\vert + \sqrt{2}\left\vert\dfrac{C_1}{a_1}\right\vert + \Vert f\Vert_{L^2}\Vert\right)\Vert v\Vert_{H^1}
+    \end{align*}
+    Vậy theo định lý Lax-Milgram: tồn tại duy nhất $u\in H^1(\Omega)$ sao cho: 
+    \begin{align*}
+        a(u,v) = F(v) \ \ \ \ \ ,\forall v\in H^1(\Omega)
+    \end{align*}
+    Hay nói cách khác tồn tại duy nhất $u\in H^1(\Omega)$ là nghiệm yếu của bài toán (1)
+    \begin{enumerate}[b.]
+        \item Dùng phương pháp phần tử hữu hạn để xây dựng một thuật toán tìm nghiệm xấp xỉ cho phương trình trên.
+    \end{enumerate}
+    Đặt $V = H^1(\Omega)$
+    Ở đây ta xét phương pháp Phần tử hữu hạn cho miền $\Omega$ (1 chiều), xấp xỉ bằng đa thức nội suy Lagrange bậc 2 để tìm một xấp xỉ cho nghiệm $u\in V$ thỏa bài toán (2) :\\
+    \begin{align*}
+        \dfrac{b_2}{b_1}u(1)v(1) - \dfrac{a_2}{a_1}u(0)v(0) + \int_\Omega (u'.v' + u.v) d\Omega = \int_\Omega f.v d\Omega + \dfrac{C_2}{b_1}v(1) - \dfrac{C_1}{a_1}v(0) \ \ \ ,\forall v \in V \tag{2}
+    \end{align*}
+    Để tiện trình bày ta kí hiệu Đa thức nội suy Lagrange bậc 2 là: $L_{2,i}$\\
+    Nhắc lại về hàm Lagrange bậc 2:\\
+    Giả sử trên đoạn $[x_{j-1},x_{j+1}]$\\[0.2cm]
+    $$\begin{tikzpicture}[scale=3, font=\footnotesize, line join=round, line cap=round, >=stealth]
+        \draw [-] (10,-1)--(12,-1);
+        \fill (10,-1) circle (1pt)   node [below] {$x_{j-1}$};
+        \fill (11,-1) circle (1pt)   node [below] {$x_{j}$};
+        \fill (12,-1) circle (1pt)   node [below] {$x_{j+1}$};
+    \end{tikzpicture}$$\\
+    Hàm Lagrange bậc 2 trên đoạn $[x_{j-1},x_{j+1}]$ có dạng :\\
+    \begin{align*}
+        L_{2,j}(x)= \begin{cases}
+            \dfrac{(x - x_{j-1})(x-x_{j+1})}{(x_j - x_{j-1})(x_j - x_{j+1})}, &x = x_j\\
+            \\
+            0, &x\neq x_j
+        \end{cases}
+    \end{align*}
+    Ta đi rời rạc hóa các yếu tố của bài toán:\\
+    Miền $\Omega$ được chia ra các khoảng đều nhau thành:\\
+    $$
+    \begin{tikzpicture}[scale=3, font=\footnotesize, line join=round, line cap=round, >=stealth]
+        \draw [-] (0,-1)--(5,-1);
+        \fill (0,-1) circle (1pt)   node [below] {$x_{0}$};
+        \fill (1,-1) circle (1pt)   node [below] {$x_{1}$};
+        \fill (2,-1) circle (1pt)   node [below] {$x_{2}$};
+        \fill (4,-1) circle (1pt)   node [below] {$x_{n-1}$};
+        \fill (5,-1) circle (1pt)   node [below] {$x_{n}$};
+        \fill (0,-1) circle (0.5pt)   node [above] {$y_{0}$};
+        \fill (0.5,-1) circle (0.5pt)   node [above] {$y_{1}$};
+        \fill (1,-1) circle (0.5pt)   node [above] {$y_{2}$};
+        \fill (1.5,-1) circle (0.5pt)   node [above] {$y_{3}$};
+        \fill (2,-1) circle (0.5pt)   node [above] {$y_{4}$};
+        \fill (4,-1) circle (0.5pt)   node [above] {$y_{2n-2}$};
+        \fill (4.5,-1) circle (0.5pt)   node [above] {$y_{2n-1}$};
+        \fill (5,-1) circle (0.5pt)   node [above] {$y_{2n}$};
+    \end{tikzpicture}
+    $$
+    
+    \begin{align*}
+        V_h = span_{i=\overline{0,2n}} \{L_{2,i}\}
+    \end{align*}
+    Nếu $u_h \in V_h$ là một xấp xỉ cho nghiệm $u\in V$\\
+    Với $u_h \in V_h$, ta có thể viết $u_h$ dưới dạng:\\
+    \begin{align*}
+        u_h &= \sum\limits_{i=0}^{2n}u_i L_{2,i}\\
+        \Rightarrow u'_h &= \sum\limits_{i=0}^{2n}u_i L'_{2,i}
+    \end{align*}
+    Vậy bài toán trở thành:\\
+    Tìm $u_h \in V_h$ sao cho:\\
+    \begin{align*}
+        a(u_h,v_h) = F(v_h) \ \ \ \ \ ,\forall v_h\in V_h.
+    \end{align*}
+    Dựa vào công thức việc tìm $u_h$ tương đương với việc đi tìm các $\{u_i\}_{i=\overline{0,2n}}$.\\
+    Xét $v_h = L_{2,j}$, bài toán trở thành tìm các $\{u_i\}_{i=\overline{0,2n}}$ sao cho 
+    $$
+        a\left(\sum\limits_{i=0}^{2n}u_i L_{2,i},L_{2,j}\right) = F(L_{2,j})
+    $$
+    Trong đó:\\
+    \begin{align*}
+        a\left(\sum\limits_{i=0}^{2n}u_i L_{2,i},L_{2,j}\right) &= \dfrac{b_2}{b_1}u_nL_{2,j}(y_{2n}) - \dfrac{a_2}{a_1}u_0L_{2,j}(y_0) + \displaystyle\int\limits_\Omega \sum\limits_{i=1}^{2n-1}u_i L'_{2,i}(y_i).L'_{2,j}(y_i)dy  + \displaystyle\int\limits_\Omega \sum\limits_{i=1}^{2n-1}u_i L_{2,i}(y_i).L_{2,j}(y_i)dy \\
+        F(L_{2,j}) &= \int_\Omega f.L_{2,j}(y_i) dy + \dfrac{C_2}{b_1}L_{2,j}(y_{2n}) - \dfrac{C_1}{a_1}L_{2,j}(y_0)
+    \end{align*}
+    Ta được bài toán. tìm các $\{u_i\}_{i=\overline{1,n-1}}$ sao cho :
+    \begin{align*}
+       \dfrac{b_2}{b_1}u_{2n}L_{2,j}(y_{2n}) - \dfrac{a_2}{a_1}u_0L_{2,j}(y_0) + \displaystyle\int\limits_\Omega \sum\limits_{i=1}^{2n-1}u_i L'_{2,i}(y_i).L'_{2,j}(y_i)dy  + \displaystyle\int\limits_\Omega \sum\limits_{i=1}^{2n-1}u_i L_{2,i}(y_i).L_{2,j}(y_i)dy \\
+        = \int_\Omega f.L_{2,j}(y_i) dy + \dfrac{C_2}{b_1}L_{2,j}(y_{2n}) - \dfrac{C_1}{a_1}L_{2,j}(y_0)\\ %%%
+        u_{2n}\dfrac{b_2}{b_1}L_{2,j}(y_{2n}) - u_0\dfrac{a_2}{a_1}L_{2,j}(y_0) + \sum\limits_{i=1}^{2n-1}u_i\displaystyle\int\limits_\Omega L'_{2,i}(y_i).L'_{2,j}(y_i)dy  + \sum\limits_{i=1}^{2n-1}u_i\displaystyle\int\limits_\Omega  L_{2,i}(y_i).L_{2,j}(y_i)dy \\
+        = \int_\Omega f.L_{2,j}(y_i) dy + \dfrac{C_2}{b_1}L_{2,j}(y_{2n}) - \dfrac{C_1}{a_1}L_{2,j}(y_0)
+    \end{align*}
+    Xét trong khoảng $[x_0,x_1]$\\
+    Ta thấy trong khoảng $[x_0,x_1]$ chỉ có $ L_{2.0}, L_{2.1}, L_{2.2} \neq 0$\\
+    Với j = 0,
+    \begin{align*}
+        - u_0\dfrac{a_2}{a_1}L_{2,0} +  u_1\displaystyle\int\limits_{x_0}^{x_1} L'_{2,1}.L'_{2,0}dy + u_2\displaystyle\int\limits_{x_0}^{x_1} L'_{2,2}.L'_{2,0}dy  + u_1\displaystyle\int\limits_{x_0}^{x_1}  L_{2,1}.L_{2,0}dy + u_2\displaystyle\int\limits_{x_0}^{x_1} L_{2,2}.L_{2,0}dy 
+        = -\dfrac{C_1}{a_1}L_{2,0}\\
+        - u_0\dfrac{a_2}{a_1}L_{2,0} +  u_1 \displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,0} + L_{2,1}.L_{2,0}\right)dy + u_2\displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,0} + L_{2,1}.L_{2,0}\right)dy = -\dfrac{C_1}{a_1}L_{2,0}
+    \end{align*}
+    Với j = 1,
+    \begin{align*}
+         u_1 \displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,1} + L_{2,1}.L_{2,1}\right)dy + u_2\displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,1} + L_{2,1}.L_{2,1}\right)dy
+        = \int\limits_{x_0}^{x_1} f(x_1).L_{2,1} dy 
+    \end{align*}
+    Với j = 2,
+    \begin{align*}
+         u_1 \displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,2} + L_{2,1}.L_{2,2}\right)dy + u_2\displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,2} + L_{2,1}.L_{2,2}\right)dy
+        = \int\limits_{x_0}^{x_1} f(x_2).L_{2,2} dy 
+    \end{align*}
+    Để tiện cho việc tính toán tích phân trên miền $\Omega$ gồm các đoạn $[x_i,x_{i+1}]$, ta xây dựng ánh xạ từ đoạn $[x_i,x_{i+1}]$ qua đoạn [-1,1].\\
+    Khi đó có thể chuyển từ tích phân trên đoạn $[x_i,x_{i+1}]$ về tích phân trên đoạn [-1,1]\\
+    $\bullet$ Xây dựng ánh xạ $x = H(\xi)$ từ đoạn $[x_i,x_{i+1}]$ qua đoạn [-1,1]
+    $$
+    \begin{tikzpicture}[scale=1, font=\footnotesize, line join=round, line cap=round, >=stealth]
+        \draw (0,0)--(4,0);
+        \draw [->, very thick, red] (2,1) to [out=30,in=150] (10,1);
+        \node[below, color=red] at (6,2) {$\xi=G(y)$};
+        \draw [<-, very thick, green] (2,-1) to [out=-30,in=-150] (10,-1) ;
+        \node[above, color=green] at (6,-2) {$y=H(\xi)$};
+	    \draw (8,0)--(12,0);
+	    \fill (0,0) circle (2pt)   node [below] {$x_{i}$};
+	    \fill (4,0) circle (2pt)   node [below] {$x_{i+1}$};
+	    \fill (0,0) circle (2pt)   node [above] {$y_{j-1}$};
+	    \fill (2,0) circle (2pt)   node [above] {$y_{j}$};
+	    \fill (4,0) circle (2pt)   node [above] {$y_{j+1}$};
+	    \fill (8,0) circle (2pt)   node [above] {$-1$};
+	    \fill (10,0) circle (2pt)   node [above] {$0$};
+	    \fill (12,0) circle (2pt)   node [above] {$1$};
+    \end{tikzpicture}
+    $$
+    $\bullet$ Xác định các hệ ánh xạ G(y) = ay + b và $H(\xi) = c\xi$ + d:\\
+    Xác định hệ số a,b bằng việc giải hệ 
+    \begin{align*}
+        \begin{cases}
+            -1 = G(y_{j-1}) = ay_{j-1} + b\\
+            0 = G(y_{j}) = ay_{j} + b\\
+            1 = G(y_{j+1}) = ay_{j+1} + b
+        \end{cases}
+        \Rightarrow \begin{cases}
+            a = \dfrac{2}{y_{j+1} - y_{j-1}}\\ \\
+            b = \dfrac{y_{j+1} + y_{j-1}}{y_{j+1} - y_{j-1}}
+        \end{cases}
+    \end{align*}
+    Vậy 
+    \begin{align*}
+        \xi &= G(y) = \dfrac{2}{y_{j+1} - y_{j-1}}y + \dfrac{y_{j+1} + y_{j-1}}{y_{j+1} - y_{j-1}}\\
+        \Rightarrow \ \ \ d\xi &= G'(\xi)dy = \dfrac{2}{y_{j+1} - y_{j-1}}dy
+    \end{align*}
+    Tương tự cho ánh xạ H. Ta suy ra:
+    \begin{align*}
+        y &= H(\xi) = \dfrac{y_{j+1} - y_{j-1}}{2}\xi + \dfrac{y_{j+1} + y_{j-1}}{2} \\
+        \Rightarrow \ \ \ dy &= H(\xi)d\xi = \dfrac{y_{j+1} - y_{j-1}}{2}d\xi
+    \end{align*}
+    Và khi đó ta xác đinh được các hàm Lagrange bậc 2:
+    \begin{align*}
+        \begin{cases}
+        L_{2,j-1}(y) = \overline{L}_{2,1}(G(y)) &= \dfrac{(y - y_j)(y - y_{j+1})}{(y_{j-1} - y_j)(y_{j-1} - y_{j+1})}\\
+        L_{2,j}(y) = \overline{L}_{2,2}(G(y)) &= \dfrac{(y - y_{j-1})(y - y_{j+1})}{(y_{j} - y_{j-1})(y_{j} - y_{j+1})}\\
+        L_{2,j+1}(y) = \overline{L}_{2,3}(G(y)) &= \dfrac{(y - y_{j-1})(y - y_{j})}{(y_{j+1} - y_{j-1})(y_{j+1} - y_{j})}
+        \end{cases}
+    \end{align*}
+    Tương tự có các hàm $\overline{L}_{2,i}$\\
+    \begin{align*}
+        \begin{cases}
+        \overline{L}_{2,1}(\xi)= L_{2,j-1}(H(\xi)) &= \dfrac{\xi(\xi-1)}{2}\\
+        \overline{L}_{2,2}(\xi)= L_{2,j}(H(\xi)) &= 1 - \xi^2\\
+        \overline{L}_{2,3}(\xi)= L_{2,j+1}(H(\xi)) &= \dfrac{\xi(\xi+1)}{2}
+        \end{cases}
+        \ \ \ \Rightarrow \ \ \ 
+        \begin{cases}
+        \overline{L'}_{2,1}(\xi) &= \xi - \dfrac{1}{2} \\
+        \overline{L'}_{2,2}(\xi) &= - 2\xi \\
+        \overline{L'}_{2,3}(\xi) &= \xi + \dfrac{1}{2} \\
+        \end{cases}
+    \end{align*}
+    Bây giờ việc tính toán tích phân trên đoạn $[x_i,x_{i+1}]$ bất kì đều có thể đưa về tích phân trên đoạn [-1,1].\\
+    Điều này giúp dễ dàng hơn trong việc lập trình.\\
+    Quay lại với bài toán, trước đó ta đã tính toán thử trong khoảng $[x_0,x_1]$ và có được các kết quả.\\
+    Bây giờ biến đổi các tích phân đó từ khoảng $[x_0,x_1]$ về khoảng [-1,1]\\
+    Với j = 0,
+    \begin{align*}
+        - u_0\dfrac{a_2}{a_1}L_{2,0} +  u_1 \displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,0} + L_{2,1}.L_{2,0}\right)dy + u_2\displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,0} + L_{2,1}.L_{2,0}\right)dy = -\dfrac{C_1}{a_1}L_{2,0}\\
+        - u_0\dfrac{a_2}{a_1}\overline{L}_{2,1} +  u_1 \displaystyle\int\limits_{-1}^{1} \left(\overline{L'}_{2,2}.\overline{L'}_{2,1} + \overline{L}_{2,2}.\overline{L}_{2,1}\right)\dfrac{y_{j+1} - y_{j-1}}{2}d\xi + u_2\displaystyle\int\limits_{-1}^{1} \left(\overline{L'}_{2,2}.\overline{L'}_{2,1} + \overline{L}_{2,2}.\overline{L}_{2,1}\right)\dfrac{y_{j+1} - y_{j-1}}{2}d\xi = -\dfrac{C_1}{a_1}\overline{L}_{2,1}
+    \end{align*}
+    Với j = 1,
+    \begin{align*}
+         u_1 \displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,1} + L_{2,1}.L_{2,1}\right)dy + u_2\displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,1} + L_{2,1}.L_{2,1}\right)dy
+        &= \int\limits_{x_0}^{x_1} f(x_1).L_{2,1} dy\\
+        u_1 \displaystyle\int\limits_{-1}^{1} \left(\overline{L'}_{2,2}.\overline{L'}_{2,2} + \overline{L}_{2,2}.\overline{L}_{2,2}\right)\dfrac{y_{j+1} - y_{j-1}}{2}d\xi + u_2\displaystyle\int\limits_{-1}^{1} \left(\overline{L'}_{2,1}.\overline{L'}_{2,1} + \overline{L}_{2,2}\overline{L}_{2,2}\right)\dfrac{y_{j+1} - y_{j-1}}{2}d\xi
+        &= \int\limits_{-1}^{1} f(x_1).\overline{L}_{2,2} \dfrac{y_{j+1} - y_{j-1}}{2}d\xi
+    \end{align*}
+    Với j = 2,
+    \begin{align*}
+         u_1 \displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,2} + L_{2,1}.L_{2,2}\right)dy + u_2\displaystyle\int\limits_{x_0}^{x_1} \left(L'_{2,1}.L'_{2,2} + L_{2,1}.L_{2,2}\right)dy
+        = \int\limits_{x_0}^{x_1} f(x_2).L_{2,2} dy 
+    \end{align*}
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \begin{mybox}
+        $\bold{Question 2.1:}$\\
+        Cho miền $\Omega $ như hình vẽ dưới:\\
+        $$
+        \begin{tikzpicture}[scale=3, font=\footnotesize, line join=round, line cap=round, >=stealth]
+            \draw (0,0) rectangle (1,1);
+            \node[below] at (0.5,0) {$\Gamma_1$};
+            \node[left] at (0,0.5) {$\Gamma_2$};
+            \node[above] at (0.5,1) {$\Gamma_3$};
+            \node[right] at (1,0.5) {$\Gamma_4$};
+            \node at (0.5,0.5) {$\bold{\Omega}$};
+        \end{tikzpicture}
+        $$
+        Với miền $\Omega$ như trên, xét phương trình:
+        \begin{align*}
+            \begin{cases}
+                -\Delta u(x,y) + \alpha u(x,y) &= f(x,y), \ \ \ \forall (x,y)\in\Omega,\\
+                u(x,y) &= g_1(x,y), \ \ \ \forall (x,y)\in\Gamma_1,\\
+                u(x,y) &= g_2(x,y), \ \ \ \forall (x,y)\in\Gamma_3,\\
+                a_1u(x,y) + a_2\nabla u(x,y).\vec{n}_{\Gamma_2} &= h_1(x,y), \ \ \ \forall (x,y)\in\Gamma_2,\\
+                b_1u(x,y) + b_2\nabla u(x,y).\vec{n}_{\Gamma_4} &= h_2(x,y), \ \ \ \forall (x,y)\in\Gamma_4,\\
+            \end{cases}
+        \end{align*}
+        Trong đó $\alpha, a_1, a_2, b_1, b_2 \in \mathbb{R}$ và $a_1, b_1 \neq 0$\\[0.2cm]
+        Dựa vào phương trình và các dữ kiện trên, hãy thực hiện các yêu cầu sau đây\\
+        \begin{enumerate}[a.]
+            \item Chứng minh sự tồn tại nghiệm yếu và tính duy nhất của nghiệm phương trình trên.\\
+            \item Dùng phương pháp phần tử hữu hạn để xây dựng một thuật toán tìm nghiệm xấp xỉ cho phương trình trên.\\
+            \item Với miền $\Omega$ = [0,1] $\times$ [0,1], ta có phương trình sau đây:
+            \begin{align*}
+            \begin{cases}
+                -\Delta u(x,y) + \alpha u(x,y) &= (1+4\pi^2)(sin(2\pi x) + cos(2\pi y)) + \frac{x^2+y^2}{4} - 1, \ \ \ \forall (x,y)\in\Omega,\\
+                u(x,y) &= sin(2\pi x) + \frac{x^2}{4} + 1, \ \ \ \forall (x,y)\in\Gamma_1,\\
+                u(x,y) &= sin(2\pi x) + \frac{x^2+1}{4} + 1, \ \ \ \forall (x,y)\in\Gamma_3,\\
+                u(x,y) + \frac{\partial u}{\partial x} &= cos(2\pi y) + \frac{y^2}{4} + 2\pi, \ \ \ \forall (x,y)\in\Gamma_2,\\
+                u(x,y) + \frac{\partial u}{\partial x} &= cos(2\pi y) + \frac{y^2+1}{4} + 2\pi + \frac{1}{2}, \ \ \ \forall (x,y)\in\Gamma_4,\\
+            \end{cases}
+        \end{align*}
+            Nghiệm chính xác của phương trình trên là: $u(x,y) = sin(2\pi x) + cos(2\pi y) + \frac{x^2+y^2}{4}.$\\
+            Áp dụng thuật toán đã xây dựng ở câu b để tìm nghiệm xấp xỉ cho phương trình trên.\\
+        \end{enumerate}
+        Lưu ý: Dùng lưới tam giác và đa thức nội suy Lagrange bậc 2 để tính toán chi tiết từng tích phân, ma trận trong thuật toán tìm nghiệm xấp xỉ, thực hành trên phần mềm MATLAB để tìm nghiệm xấp xỉ và so sánh đối chiếu với nghiệm chính xác của phương trình.
+    \end{mybox}
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%5
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \begin{mybox}
+        $\bold{Question 2.2:}$\\
+        Cho miền $\Omega $ như hình vẽ dưới:\\
+        $$
+        \begin{tikzpicture}[scale=3, font=\footnotesize, line join=round, line cap=round, >=stealth]
+            \draw (0,0) rectangle (1,1);
+            \node[below] at (0.5,0) {$\Gamma_1$};
+            \node[left] at (0,0.5) {$\Gamma_2$};
+            \node[above] at (0.5,1) {$\Gamma_3$};
+            \node[right] at (1,0.5) {$\Gamma_4$};
+            \node at (0.5,0.5) {$\bold{\Omega}$};
+        \end{tikzpicture}
+        $$
+        Với miền $\Omega$ như trên, xét phương trình:
+        \begin{align*}
+            \begin{cases}
+                -\Delta u(x,y) + \alpha u(x,y) &= f(x,y), \ \ \ \forall (x,y)\in\Omega,\\
+                u(x,y) &= g_1(x,y), \ \ \ \forall (x,y)\in\Gamma_1,\\
+                u(x,y) &= g_2(x,y), \ \ \ \forall (x,y)\in\Gamma_3,\\
+                a_1u(x,y) + a_2\nabla u(x,y).\vec{n}_{\Gamma_2} &= h_1(x,y), \ \ \ \forall (x,y)\in\Gamma_2,\\
+                b_1u(x,y) + b_2\nabla u(x,y).\vec{n}_{\Gamma_4} &= h_2(x,y), \ \ \ \forall (x,y)\in\Gamma_4,\\
+            \end{cases}
+        \end{align*}
+        Trong đó $\alpha, a_1, a_2, b_1, b_2 \in \mathbb{R}$ và $a_1, b_1 \neq 0$\\[0.2cm]
+        Dựa vào phương trình và các dữ kiện trên, hãy thực hiện các yêu cầu sau đây\\
+        \begin{enumerate}[a.]
+            \item Chứng minh sự tồn tại nghiệm yếu và tính duy nhất của nghiệm phương trình trên.\\
+            \item Dùng phương pháp phần tử hữu hạn để xây dựng một thuật toán tìm nghiệm xấp xỉ cho phương trình trên.\\
+            \item Với miền $\Omega$ = [0,1] $\times$ [0,1], ta có phương trình sau đây:
+            \begin{align*}
+            \begin{cases}
+                -\Delta u(x,y) + \alpha u(x,y) &= (1+4\pi^2)(sin(2\pi x) + cos(2\pi y)) + \frac{x^2+y^2}{4} - 1, \ \ \ \forall (x,y)\in\Omega,\\
+                u(x,y) &= sin(2\pi x) + \frac{x^2}{4} + 1, \ \ \ \forall (x,y)\in\Gamma_1,\\
+                u(x,y) &= sin(2\pi x) + \frac{x^2+1}{4} + 1, \ \ \ \forall (x,y)\in\Gamma_3,\\
+                \frac{\partial u}{\partial x} &= 2\pi, \ \ \ \forall (x,y)\in\Gamma_2,\\
+                \frac{\partial u}{\partial x} &= 2\pi + \frac{1}{2}, \ \ \ \forall (x,y)\in\Gamma_4,\\
+            \end{cases}
+        \end{align*}
+            Nghiệm chính xác của phương trình trên là: $u(x,y) = sin(2\pi x) + cos(2\pi y) + \frac{x^2+y^2}{4}.$\\
+            Áp dụng thuật toán đã xây dựng ở câu b để tìm nghiệm xấp xỉ cho phương trình trên.\\
+        \end{enumerate}
+        Lưu ý: Dùng lưới tứ giác và đa thức nội suy Lagrange bậc 2 để tính toán chi tiết từng tích phân, ma trận trong thuật toán tìm nghiệm xấp xỉ, thực hành trên phần mềm MATLAB để tìm nghiệm xấp xỉ và so sánh đối chiếu với nghiệm chính xác của phương trình.
+    \end{mybox}
+    
+    
+    
+    
+\end{document}
